@@ -1,14 +1,14 @@
 Homework 1: Basic Charts
 ==============================
 
-| **Name**  | [YOUR NAME]  |
+| **Name**  | Jeremy Gilmore  |
 |----------:|:-------------|
-| **Email** | [USERNAME]@dons.usfca.edu |
+| **Email** | jgilmore@dons.usfca.edu |
 
 ## Instructions ##
 
-[INSTRUCTIONS: Include instructions on how to run your code. See [`homework0`](../homework0) for an example.]
+[INSTRUCTIONS: These are my instructions.]
 
 ## Discussion ##
 
-[DISCUSSION: Include a discussion here if required by the assignment.]
+[DISCUSSION: This is my discussion.]
