@@ -36,6 +36,6 @@ The code should run with a single execution.  Before you execute, consider the f
 - **Plot 3: Small Multiples.** Again for consistency, the same colors and ordering is used to show frequency and density.  The same units are used for budget (in millions of dollars), and a slightly less transparent point is used for there are fewer points per graph.
 
 
-![IMAGE](multiline.png)
+![IMAGE](hw1-multiline.png)
 
 - **Plot 4: Multi-Line Chart.** A challenging aspect of this graph is to keep the scale in proportion for each axis so that the data represented was not distorted.  For that reason, the legend was moved.  Also this helped to alleviate the blank area in the upper left quadrant of the visualization.  Also in the legend, more information was conveyed by also including the country of origin for each index.  Additional y-axis ticks were added so viewers could see major performance values and x-axis label removed because "time" is redundant.
