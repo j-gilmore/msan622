@@ -123,863 +123,6 @@ primaryparticipation#
 barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
 #
 elections<-c(1:nPeriods)#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual
-voteDts
-voteRts
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual
-voteDts
-voteRts
-plot(elections, primaryparticipation)
-plot(elections, primarytotalvotes)
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, (voteRts+voteDts), cex=.3, xlab="Elections", ylab="Democratic Votes")#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteR, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteD, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, (voteR+voteD), cex=.3, xlab="Elections", ylab="Democratic Votes")#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, (voteRts+voteDts), cex=.3, xlab="Elections", ylab="Democratic Votes")#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual
-voteD
-voteDts
-primaryparticipation
-primarytotalvotes
-actions
-mean(actions)
-voteDts[nPeriods]#
-voteRts[nPeriods]
-mean((voteRts+voteDts))
-mean(voteRts+voteDts)
-mean(voteRts[nPeriods]+voteDts[nPeriods])
-mean((voteRts[nPeriods]+voteDts[nPeriods]))
-((voteRts[nPeriods]+voteDts[nPeriods]))/2
-voteRts
-participation<-(voteRts+voteDts)/2
-participation
-plot(elections, participation)
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-participation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, (voteRts+voteDts), cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, participation, cex=.3, xlab="Elections", ylab="Total Participation")#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
 participation<-(voteRts+voteDts)/2#
 #
 voteDts[nPeriods]#
@@ -14450,198 +13593,545 @@ shinyServer(function(input, output) {#
 	})#
 })
 runApp()
-setwd("/Users/jg/Documents/DataVis/msan622/Homework2/")
+update.packages(shiny)
+update.packages(Shiny)
+library()
+update.packages("shiny")
+library(shiny)
+shiny::runGitHub('msan622', 'j-gilmore', 'homework2')
+library(ggplot2)#
+library(grid)#
+#
+data("iris")#
+#
+df <- iris#
+#
+p <- ggplot(df, aes(#
+	x = Sepal.Length#
+	y = Sepal.Width#
+	color = Species#
+	size = Petal.Length#
+	))#
+#
+p <- p + geom_point(alpha = 0.6, position = "jitter")#
+p <- p + scale_size_area(max_size=10)#
+#
+print(p)
+library(ggplot2)#
+library(grid)#
+#
+data("iris")#
+#
+df <- iris#
+#
+p <- ggplot(df, aes(#
+	x = Sepal.Length,#
+	y = Sepal.Width,#
+	color = Species,#
+	size = Petal.Length#
+	))#
+#
+p <- p + geom_point(alpha = 0.6, position = "jitter")#
+p <- p + scale_size_area(max_size=10)#
+#
+print(p)
+library(ggplot2)#
+library(grid)#
+#
+data("iris")#
+#
+df <- iris[(df$Petal.Length, decreasing = TRUE),]#
+#
+p <- ggplot(df, aes(#
+	x = Sepal.Length,#
+	y = Sepal.Width,#
+	color = Species,#
+	size = Petal.Length#
+	))#
+#
+p <- p + geom_point(alpha = 0.6, position = "jitter")#
+p <- p + scale_size_area(max_size=10)#
+#
+print(p)
+library(ggplot2)#
+library(grid)#
+#
+data("iris")#
+#
+df <- iris[(df$Petal.Length, decreasing = TRUE),]#
+#
+p <- ggplot(df, aes(#
+	x = Sepal.Length,#
+	y = Sepal.Width,#
+	color = Species,#
+	size = Petal.Length#
+	))#
+#
+p <- p + geom_point(alpha = 0.6, position = "jitter")#
+p <- p + scale_size_area(max_size=10)#
+#
+p <- p + guides(colour = guide_legend(override.aes = list(size=8)))#
+#
+print(p)
+Melting necessarty for heatmaps#
+library(ggplot2)#
+library(reshape)#
+library(plyr)#
+library(scales)#
+# Processing Data#
+processData <- function(original) {#
+	processed <- original#
+	colnames(processed) <- gsub("\\.", " ", colnames(processed))#
+	processed <- processed[sapply(processed, is.numeric)]#
+	processed <- rescaler(processed, type = "range")#
+	processed$id <- 1:nrow(original)#
+	processed <- melt(processed, "id")#
+	processed$id <- factor(processed$id,#
+		levels = 1:nrow(original), ordered = TRUE)#
+	return(processed)#
+}#
+# possibly normalize between zero and one#
+# data from 1 to 5, and from 1 to 5000 -> normalize#
+#
+getHeatmap <- function(dataset, midrange) {#
+	p <- ggplot(dataset, aes(x = id, y = variable))#
+	p <- geom_tile(aes(fill = value))#
+	return(p)#
+}#
+#
+melted < processData(iris)#
+print(getheatmap(melted, c(0.4, 0.6)))
+Melting necessarty for heatmaps#
+library(ggplot2)#
+library(reshape)#
+library(plyr)#
+library(scales)#
+# Processing Data#
+processData <- function(original) {#
+	processed <- original#
+	colnames(processed) <- gsub("\\.", " ", colnames(processed))#
+	processed <- processed[sapply(processed, is.numeric)]#
+	processed <- rescaler(processed, type = "range")#
+	processed$id <- 1:nrow(original)#
+	processed <- melt(processed, "id")#
+	processed$id <- factor(processed$id,#
+		levels = 1:nrow(original), ordered = TRUE)#
+	return(processed)#
+}#
+# possibly normalize between zero and one#
+# data from 1 to 5, and from 1 to 5000 -> normalize#
+#
+getHeatmap <- function(dataset, midrange) {#
+	p <- ggplot(dataset, aes(x = id, y = variable))#
+	p <- geom_tile(aes(fill = value))#
+	return(p)#
+}#
+#
+melted < processData(iris)#
+print(getHeatmap(melted, c(0.4, 0.6)))
+Melting necessarty for heatmaps#
+library(ggplot2)#
+library(reshape)#
+library(plyr)#
+library(scales)#
+# Processing Data#
+processData <- function(original) {#
+	processed <- original#
+	colnames(processed) <- gsub("\\.", " ", colnames(processed))#
+	processed <- processed[sapply(processed, is.numeric)]#
+	processed <- rescaler(processed, type = "range")#
+	processed$id <- 1:nrow(original)#
+	processed <- melt(processed, "id")#
+	processed$id <- factor(processed$id,#
+		levels = 1:nrow(original), ordered = TRUE)#
+	return(processed)#
+}#
+# possibly normalize between zero and one#
+# data from 1 to 5, and from 1 to 5000 -> normalize#
+#
+getHeatmap <- function(dataset, midrange) {#
+	p <- ggplot(dataset, aes(x = id, y = variable))#
+	p <- geom_tile(aes(fill = value))#
+	return(p)#
+}#
+#
+melted < processed(iris)#
+print(getHeatmap(melted, c(0.4, 0.6)))
+Melting necessarty for heatmaps#
+library(ggplot2)#
+library(reshape)#
+library(plyr)#
+library(scales)#
+# Processing Data#
+processData <- function(original) {#
+	processed <- original#
+	colnames(processed) <- gsub("\\.", " ", colnames(processed))#
+	processed <- processed[sapply(processed, is.numeric)]#
+	processed <- rescaler(processed, type = "range")#
+	processed$id <- 1:nrow(original)#
+	processed <- melt(processed, "id")#
+	processed$id <- factor(processed$id,#
+		levels = 1:nrow(original), ordered = TRUE)#
+	return(processed)#
+}#
+# possibly normalize between zero and one#
+# data from 1 to 5, and from 1 to 5000 -> normalize#
+#
+getHeatmap <- function(dataset, midrange) {#
+	p <- ggplot(dataset, aes(x = id, y = variable))#
+	p <- geom_tile(aes(fill = value))#
+	return(p)#
+}#
+#
+melted <- processData(iris)#
+print(getHeatmap(melted, c(0.4, 0.6)))
+if (!require(devtools))#
+  install.packages("devtools")#
+devtools::install_github("jcheng5/leaflet-shiny")#
+shiny::runGitHub("superzip", "jcheng5")
+install.packages(dplyr)
+library()
+?dplyr
+??dplyr
+install.packages(plyr)
+library()
+library(plyr)
+shiny::runGitHub("superzip", "jcheng5")
+library(shiny)
+shiny::runGitHub('msan622', 'trevorstephens', subdir='homework2')
+library(shiny)
+shiny::runGitHub('msan622', 'ashishthakur1296', subdir='homework2')
+install.packages("sqldf")
+shiny::runGitHub('msan622', 'ashishthakur1296', subdir='homework2')
+library(shiny)
+shiny::runGitHub('msan622', 'trevorstephens', subdir='homework2')
 Jeremy Gilmore#
 ## MSAN 622#
 #
-## Homework 2#
+## Homework 3#
 #
 library(ggplot2)#
+library(grid)#
 library(shiny)#
-library(scales)#
-data(movies)#
-movies=movies[which(!movies$budget<=0 & !movies$mpaa==""),]#
-genre <- rep(NA, nrow(movies))#
-count <- rowSums(movies[, 18:24])#
-genre[which(count > 1)] = "Mixed"#
-genre[which(count < 1)] = "None"#
-genre[which(count == 1 & movies$Action == 1)] = "Action"#
-genre[which(count == 1 & movies$Animation == 1)] = "Animation"#
-genre[which(count == 1 & movies$Comedy == 1)] = "Comedy"#
-genre[which(count == 1 & movies$Drama == 1)] = "Drama"#
-genre[which(count == 1 & movies$Documentary == 1)] = "Documentary"#
-genre[which(count == 1 & movies$Romance == 1)] = "Romance"#
-genre[which(count == 1 & movies$Short == 1)] = "Short"#
-movies$Genre<-genre#
+library(lattice)#
+library(GGally)#
+library(reshape2)#
 #
-million_formatter <- function(x) {#
-	#label <- round(x / 1000000)#
-	return(sprintf("$%sM", round(x / 1000000)))#
-}#
+setwd("/Users/jg/Documents/DataVis/msan622/Homework3/")#
 #
-getPlot <- function(alphaVal,genreVal,mpaaVal,pointVal,colorScheme,jitterVal) {#
-	subMovies <- subset(movies, (movies$Genre %in% genreVal) & (movies$mpaa %in% mpaaVal), c(budget, mpaa, rating))#
-	MPAA <- factor(subMovies$mpaa, levels=c("PG", "PG-13", "R", "NC-17"))#
+df <- data.frame(state.x77,#
+	State = state.name,#
+	Abbrev = state.abb,#
+	Region = state.region,#
+	Division = state.division,#
+	Long = state.center$x,#
+	Lat = state.center$y#
+)#
 #
-	assign("subMovies", subMovies, envir=globalenv())#
-	assign("MPAA", MPAA, envir=globalenv())#
-	p <- ggplot(subMovies,#
-		aes(x= subMovies$budget, y= subMovies$rating,#
-		colour=MPAA)) +#
-		geom_point(alpha=alphaVal, shape=20, size=pointVal, position=jitterVal) +#
-		scale_y_continuous(breaks=seq(0,10,1), labels=seq(0,10,1)) +#
-		scale_x_continuous(label = million_formatter) +#
-		theme(legend.position="bottom") +#
-		ggtitle("IMDb Ratings and Budget") +#
-		theme(plot.title = element_text(face="bold")) +#
-		xlab("Budget in Millions of USD") +#
-		ylab("IMDB Ratings")#
+# Add New Variables#
+Pop.Density <- (df$Population/df$Area) # to get population density per state#
+df$Pop.Density <- Pop.Density#
+Pop.Nation <- sum(df$Population)#
+StatePercNatPop <- (df$Population/Pop.Nation)#
+df$StatePercNatPop <- StatePercNatPop#
+df$Illiteracy <- df$Illiteracy/100#
+NatIllRate <- (sum((df$Illiteracy/100)*df$Population)/Pop.Nation)#
+df$Murder <- df$Murder/100#
+NatMurderRate <- mean(df$Murder)#
+df$HS.Grad <- df$HS.Grad/100#
+NatHSGradRate <- mean(df$HS.Grad)#
 #
-	if (colorScheme == "Default") {#
-		p <- p#
+# Income Variables#
+GDP <- (sum((df$Population*df$Income)))#
+StateIncome <- df$Population*df$Income#
+df$StateIncome <- StateIncome#
+DivisionIncome <- rowsum(df$StateIncome, df$Division)#
+RegionIncome <- rowsum(df$StateIncome, df$Region)#
+df$StateIncGDP <- df$StateIncome/GDP#
+#
+DivIncGDP <- DivisionIncome/GDP#
+RegIncGDP <- RegionIncome/GDP#
+#
+# Apply Division Income to each row of dataset#
+df$DivisionIncome <- rep(NA, nrow(df))#
+levelsDivision <- levels(df$Division)#
+df$DivisionIncome[which(df$Division == "New England")] = DivisionIncome[1,]#
+df$DivisionIncome[which(df$Division == "Middle Atlantic")] = DivisionIncome[2,]#
+df$DivisionIncome[which(df$Division == "South Atlantic")] = DivisionIncome[3,]#
+df$DivisionIncome[which(df$Division == "East South Central")] = DivisionIncome[4,]#
+df$DivisionIncome[which(df$Division == "West South Central")] = DivisionIncome[5,]#
+df$DivisionIncome[which(df$Division == "East North Central")] = DivisionIncome[6,]#
+df$DivisionIncome[which(df$Division == "West North Central")] = DivisionIncome[7,]#
+df$DivisionIncome[which(df$Division == "Mountain")] = DivisionIncome[8,]#
+df$DivisionIncome[which(df$Division == "Pacific")] = DivisionIncome[9,]#
+#
+# Assign Region Income to each row of dataset#
+df$RegionIncome <- rep(NA, nrow(df))#
+df$RegionIncome[which(df$Region == "Northeast")] = RegionIncome[1,]#
+df$RegionIncome[which(df$Region == "South")] = RegionIncome[2,]#
+df$RegionIncome[which(df$Region == "North Central")] = RegionIncome[3,]#
+df$RegionIncome[which(df$Region == "West")] = RegionIncome[4,]#
+#
+df$StateIncDiv <- df$StateIncome/df$DivisionIncome#
+df$StateIncReg <- df$StateIncome/df$RegionIncome#
+#
+#for percentage rank#
+perc.rank <- function(x) rank(x)/length(x)#
+df<- within(df, RankStateIncGDP <- perc.rank(StateIncGDP))#
+#
+df$id <- rownames(df)#
+#
+plotFunction <- function(plotType,xVar,yVar,subsetGeog,scale,perc,dataType,dType) {#
+	indices <- which(df$RankStateIncGDP >= perc[1]#
+					& df$RankStateIncGDP <= perc[2])#
+	dfsub <- df[indices,]#
+#
+	if(plotType=="Bubble") {#
+		p <- ggplot(dfsub, aes_string(#
+			x = xVar,#
+			y = yVar,#
+			color = subsetGeog,#
+			size = scale#
+			))#
+		p <- p + geom_point(alpha=0.7, position = "jitter")#
+		p <- p + scale_size_area(max_size = 10, guide = "none")#
+		p <- p + ggtitle("State.x77 Bubble Plot")#
+		p <- p + theme(legend.title = element_blank())#
+		p <- p + theme(legend.justification = c(0,0))#
+		p <- p + theme(legend.background = element_blank())#
+		p <- p + theme(legend.key = element_blank())#
+		p <- p + theme(legend.text = element_text(size=14))#
+		p <- p + theme(legend.margin = unit(0, "pt"))#
+		p <- p + guides(colour = guide_legend(override.aes = list(size = 8)))#
+		return(print(p))#
 	}#
-	else {#
-		p <- p + scale_color_brewer(palette = colorScheme)#
+#
+	if(plotType=="Small Multiples") {#
+		if(subsetGeog=="Region" & dataType=="statestats") {#
+			dfsubsm <- dfsub[,c(3,5,6,7,11,24)]#
+			dfsubsm <- melt(dfsubsm, id.vars=c("id", "Region"))#
+			smr <- ggplot(dfsubsm, aes(#
+				x = value,#
+				group = variable,#
+				fill = Region)) +#
+				geom_density(aes(colour = Region)) +#
+				facet_grid(Region ~ variable,#
+				scales = "free_x")#
+			smr <- smr + theme(legend.position = "none")#
+			smr <- smr + theme(axis.title = element_blank())#
+			smr <- smr + theme(panel.grid.minor.x = element_blank())#
+			smr <- smr + theme(panel.grid.major.x = element_blank())#
+			smr <- smr + labs(title = "State.x77 Small Multiples")#
+			return(print(smr))#
+		}#
+		if(subsetGeog=="Region" & dataType=="incomeVars") {#
+			dfsubsm <- dfsub[,c(11,15,16,18,22,24)]#
+			dfsubsm <- melt(dfsubsm, id.vars=c("id", "Region"))#
+			smr <- ggplot(dfsubsm, aes(#
+				x = value,#
+				group = variable,#
+				fill = Region)) +#
+				geom_density(aes(colour = Region)) +#
+				facet_grid(Region ~ variable,#
+				scales = "free_x")#
+			smr <- smr + theme(legend.position = "none")#
+			smr <- smr + theme(axis.title = element_blank())#
+			smr <- smr + theme(panel.grid.minor.x = element_blank())#
+			smr <- smr + theme(panel.grid.major.x = element_blank())#
+			smr <- smr + labs(title = "State.x77 Small Multiples")#
+			return(print(smr))#
+		}#
+		if(subsetGeog=="Division" & dataType=="statestats") {#
+			dfsubsm <- dfsub[,c(3,5,6,7,12,24)]#
+			dfsubsm <- melt(dfsubsm, id.vars=c("id", "Division"))#
+			smd <- ggplot(dfsubsm, aes(#
+				x = value,#
+				group = variable,#
+				fill = Division)) +#
+				geom_density(aes(colour = Division)) +#
+				facet_grid(Division ~ variable,#
+				scales = "free_x")#
+			smd <- smd + theme(legend.position = "none")#
+			smd <- smd + theme(axis.title = element_blank())#
+			smd <- smd + theme(panel.grid.minor.x = element_blank())#
+			smd <- smd + theme(panel.grid.major.x = element_blank())#
+			smd <- smd + labs(title = "State.x77 Small Multiples")#
+			return(print(smd))#
+		}#
+		if(subsetGeog=="Division" & dataType=="incomeVars") {#
+			dfsubsm <- dfsub[,c(12,15,16,18,22,24)]#
+			dfsubsm <- melt(dfsubsm, id.vars=c("id", "Division"))#
+			smd <- ggplot(dfsubsm, aes(#
+				x = value,#
+				group = variable,#
+				fill = Division)) +#
+				geom_density(aes(colour = Division)) +#
+				facet_grid(Division ~ variable,#
+				scales = "free_x")#
+			smd <- smd + theme(legend.position = "none")#
+			smd <- smd + theme(axis.title = element_blank())#
+			smd <- smd + theme(panel.grid.minor.x = element_blank())#
+			smd <- smd + theme(panel.grid.major.x = element_blank())#
+			smd <- smd + labs(title = "State.x77 Small Multiples")#
+			return(print(smd))#
+		}#
 	}#
-	return(p)#
+#
+	if(plotType=="Parallel") {#
+		if(subsetGeog=="Region" & dType=="sstats") {#
+			pplotr <- ggparcoord(data = dfsub,#
+				columns = c("Illiteracy", "Murder", "HS.Grad", "Frost"),#
+				groupColumn = "Region", # or column number#
+				order = "anyClass",#
+				showPoints = FALSE,#
+				alphaLines = 0.6,#
+				shadeBox = NULL,#
+				scale = "uniminmax")#
+			pplotr <- pplotr + theme_minimal()#
+			pplotr <- pplotr + theme(axis.ticks = element_blank())#
+			pplotr <- pplotr + theme(axis.title = element_blank())#
+			pplotr <- pplotr + theme(axis.text.y = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.minor = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.major.y = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.major.x = element_line(color = 				"#bbbbbb"))#
+			pplotr <- pplotr + theme(legend.text = element_text(size=14))#
+			pplotr <- pplotr + theme(legend.margin = unit(0, "pt"))#
+			pplotr <- pplotr + guides(colour = guide_legend(override.aes = 				list(size = 8)))#
+			return(print(pplotr))#
+		}#
+		if(subsetGeog=="Region" & dType=="incVars") {#
+			pplotr <- ggparcoord(data = dfsub,#
+				columns = c("Pop.Density", "StatePercNatPop", "StateIncGDP", 				"StateIncReg"),#
+				groupColumn = "Region", # or column number#
+				order = "anyClass",#
+				showPoints = FALSE,#
+				alphaLines = 0.6,#
+				shadeBox = NULL,#
+				scale = "uniminmax")#
+			pplotr <- pplotr + theme_minimal()#
+			pplotr <- pplotr + theme(axis.ticks = element_blank())#
+			pplotr <- pplotr + theme(axis.title = element_blank())#
+			pplotr <- pplotr + theme(axis.text.y = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.minor = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.major.y = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.major.x = element_line(color = 				"#bbbbbb"))#
+			pplotr <- pplotr + theme(legend.text = element_text(size=14))#
+			pplotr <- pplotr + theme(legend.margin = unit(0, "pt"))#
+			pplotr <- pplotr + guides(colour = guide_legend(override.aes = 				list(size = 8)))#
+#
+			return(print(pplotr))#
+		}#
+		if(subsetGeog=="Division" & dType=="sstats") {#
+			pplotr <- ggparcoord(data = dfsub,#
+				columns = c("Illiteracy", "Murder", "HS.Grad", "Frost"),#
+				groupColumn = "Division", # or column number#
+				order = "anyClass",#
+				showPoints = FALSE,#
+				alphaLines = 0.6,#
+				shadeBox = NULL,#
+				scale = "uniminmax")#
+			pplotr <- pplotr + theme_minimal()#
+			pplotr <- pplotr + theme(axis.ticks = element_blank())#
+			pplotr <- pplotr + theme(axis.title = element_blank())#
+			pplotr <- pplotr + theme(axis.text.y = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.minor = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.major.y = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.major.x = element_line(color = 				"#bbbbbb"))#
+			pplotr <- pplotr + theme(legend.text = element_text(size=14))#
+			pplotr <- pplotr + theme(legend.margin = unit(0, "pt"))#
+			pplotr <- pplotr + guides(colour = guide_legend(override.aes = 				list(size = 8)))#
+#
+			return(print(pplotr))#
+		}#
+		if(subsetGeog=="Division" & dType=="incVars") {#
+			pplotr <- ggparcoord(data = dfsub,#
+				columns = c("Pop.Density", "StatePercNatPop", "StateIncGDP", 				"StateIncReg"),#
+				groupColumn = "Division", # or column number#
+				order = "anyClass",#
+				showPoints = FALSE,#
+				alphaLines = 0.6,#
+				shadeBox = NULL,#
+				scale = "uniminmax")#
+			pplotr <- pplotr + theme_minimal()#
+			pplotr <- pplotr + theme(axis.ticks = element_blank())#
+			pplotr <- pplotr + theme(axis.title = element_blank())#
+			pplotr <- pplotr + theme(axis.text.y = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.minor = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.major.y = element_blank())#
+			pplotr <- pplotr + theme(panel.grid.major.x = element_line(color = 				"#bbbbbb"))#
+			pplotr <- pplotr + theme(legend.text = element_text(size=14))#
+			pplotr <- pplotr + theme(legend.margin = unit(0, "pt"))#
+			pplotr <- pplotr + guides(colour = guide_legend(override.aes = 				list(size = 8)))#
+#
+			return(print(pplotr))#
+		}#
+	}#
 }#
 #
 shinyServer(function(input, output) {#
 	cat("Press \"ESC\" to exit...\n")#
 #
-	mpaaValS <- reactive ({#
-		if (input$mpaaVal == "All") {#
-			result <- c("PG", "PG-13", "R", "NC-17")#
-			return(result)#
-		}#
-		else {#
-			return(input$mpaaVal)#
-		}#
+	output$ui <- renderUI({#
+		if (is.null(input$input_type))#
+			return()#
+		switch(input$input_type,#
+			"Bubble" = fluidRow(#
+				column(4,#
+					radioButtons("xVar", "X Variable",#
+						choices = c("Population" = "Population",#
+								"Income" = "Income",#
+								"Murder Rate" = "Murder",#
+								"Illiteracy Rate" = "Illiteracy",#
+								"HS Grad Rate" = "HS.Grad"),#
+						selected = "Income"#
+					)#
+				),#
+				column(4,#
+					radioButtons("yVar", "Y Variable",#
+						choices = c("Population" = "Population",#
+									"Income" = "Income",#
+									"Murder Rate" = "Murder",#
+									"Illiteracy Rate" = "Illiteracy",#
+									"HS Grad Rate" = "HS.Grad"),#
+						selected = "Illiteracy"#
+					)#
+				),#
+				column(4,#
+					radioButtons("scale", "Scale",#
+						choices = c("Pop. Density" = "Pop.Density",#
+									"State Perc Nat Pop " = "StatePercNatPop",#
+									"State Inc. of GDP" = "StateIncGDP"),#
+						selected = "Pop.Density"#
+					)#
+				)#
+			),#
+			"Small Multiples" = fluidRow(#
+				column(6,#
+					radioButtons("dataType", "Type of Data",#
+						choices = c("State Stats" = "statestats",#
+									"Income Variables" = "incomeVars"),#
+						selected = "statestats"#
+						))#
+			),#
+			"Parallel" = fluidRow(#
+				column(6,#
+					radioButtons("dType", "Type of Data",#
+						choices = c("State Stats" = "sstats",#
+									"Income Variables" = "incVars"),#
+						selected = "sstats"#
+						))#
+			)#
+			)#
 	})#
 #
-	genreValS <- reactive ({#
-		if(length(input$genreVal) == 0) {#
-			result <- c("Action", "Animation", "Comedy", "Documentary", 					"Drama", "Romance", "Short")#
-			return(result)#
-		}#
-		else {#
-			return(input$genreVal)#
-		}#
-	})#
-	alphaValS <- reactive ({#
-		result <- (1-input$alphaVal)#
-		return(result)#
-	})#
-	jitterValS <- reactive ({#
-		if(input$jitterVal == "Yes") {#
-			result <- "jitter"#
-			return(result)#
-		}#
-		else {#
-			return("identity")#
-		}#
+	getperc <- reactive({#
+		return(input$perc)#
 	})#
 #
-	output$scatterPlot <- renderPlot ({#
-		scatterPlot <- getPlot((alphaValS()), (genreValS()), (mpaaValS()), 			input$pointVal, input$colorScheme, (jitterValS()))#
-		print(scatterPlot)#
-	}, width = 500, height = 500)#
-})
-runApp()
-Jeremy Gilmore#
-## MSAN 622#
-#
-## Homework 2#
-#
-library(ggplot2)#
-library(shiny)#
-library(scales)#
-data(movies)#
-movies=movies[which(!movies$budget<=0 & !movies$mpaa==""),]#
-genre <- rep(NA, nrow(movies))#
-count <- rowSums(movies[, 18:24])#
-genre[which(count > 1)] = "Mixed"#
-genre[which(count < 1)] = "None"#
-genre[which(count == 1 & movies$Action == 1)] = "Action"#
-genre[which(count == 1 & movies$Animation == 1)] = "Animation"#
-genre[which(count == 1 & movies$Comedy == 1)] = "Comedy"#
-genre[which(count == 1 & movies$Drama == 1)] = "Drama"#
-genre[which(count == 1 & movies$Documentary == 1)] = "Documentary"#
-genre[which(count == 1 & movies$Romance == 1)] = "Romance"#
-genre[which(count == 1 & movies$Short == 1)] = "Short"#
-movies$Genre<-genre#
-#
-million_formatter <- function(x) {#
-	#label <- round(x / 1000000)#
-	return(sprintf("$%sM", round(x / 1000000)))#
-}#
-#
-getPlot <- function(alphaVal,genreVal,mpaaVal,pointVal,colorScheme,jitterVal) {#
-	subMovies <- subset(movies, (movies$Genre %in% genreVal) & (movies$mpaa %in% mpaaVal), c(budget, mpaa, rating))#
-	MPAA <- factor(subMovies$mpaa, levels=c("PG", "PG-13", "R", "NC-17"))#
-#
-	assign("subMovies", subMovies, envir=globalenv())#
-	assign("MPAA", MPAA, envir=globalenv())#
-	p <- ggplot(subMovies,#
-		aes(x= subMovies$budget, y= subMovies$rating,#
-		colour=MPAA)) +#
-		geom_point(alpha=alphaVal, shape=20, size=pointVal, position=jitterVal) +#
-		scale_y_continuous(breaks=seq(0,10,1), labels=seq(0,10,1)) +#
-		scale_x_continuous(label = million_formatter) +#
-		theme(legend.position="bottom") +#
-		ggtitle("IMDb Ratings and Budget") +#
-		theme(plot.title = element_text(face="bold")) +#
-		xlab("Budget in Millions of USD") +#
-		ylab("IMDB Ratings")#
-#
-	if (colorScheme == "Default") {#
-		p <- p#
-	}#
-	else {#
-		p <- p + scale_color_brewer(palette = colorScheme)#
-	}#
-	return(p)#
-}#
-#
-shinyServer(function(input, output) {#
-	cat("Press \"ESC\" to exit...\n")#
-#
-	mpaaValS <- reactive ({#
-		if (input$mpaaVal == "All") {#
-			result <- c("PG", "PG-13", "R", "NC-17")#
-			return(result)#
-		}#
-		else {#
-			return(input$mpaaVal)#
-		}#
-	})#
-#
-	genreValS <- reactive ({#
-		if(length(input$genreVal) == 0) {#
-			result <- c("Action", "Animation", "Comedy", "Documentary", 					"Drama", "Romance", "Short")#
-			return(result)#
-		}#
-		else {#
-			return(input$genreVal)#
-		}#
-	})#
-	alphaValS <- reactive ({#
-		result <- (1-input$alphaVal)#
-		return(result)#
-	})#
-	jitterValS <- reactive ({#
-		if(input$jitterVal == "Yes") {#
-			result <- "jitter"#
-			return(result)#
-		}#
-		else {#
-			return("identity")#
-		}#
-	})#
-#
-	output$scatterPlot <- renderPlot ({#
-		scatterPlot <- getPlot((alphaValS()), (genreValS()), (mpaaValS()), 			input$pointVal, input$colorScheme, (jitterValS()))#
-		print(scatterPlot)#
-	}, width = 500, height = 500)#
+	output$plotResults <- renderPlot ({#
+		plotResults <- plotFunction(input$input_type, input$xVar, input$yVar, #
+		input$subsetGeog, input$scale, getperc(),input$dataType,input$dType)#
+		print(plotResults)#
+	}, width = 700, height = 600)#
 })
 runApp()
