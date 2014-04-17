@@ -21,7 +21,7 @@ To run this code, please enter the following commands in R:
 
 ```
 library(shiny)
-shiny::runGitHub('msan622', 'j-gilmore', subdir = 'homework3')
+shiny::runGitHub('msan622', 'j-gilmore', subdir = 'homework4')
 ```
 
 This will start the `shiny` app. See below for details on how to interact with the visualization.  To visualize the applications on the Many Eyes(tm) website you need to have Java enabled in your browser.
@@ -32,13 +32,13 @@ This visualization is meant to be interactive.  Please adjust the settings to se
 
 -** The Divine Comedy by Dante Alighieri** This work was chosen to show how a single author can vary their mood and theme.  Further, this has been emphasized within a single masterpiece of classic literature.  The corpus is from a single translation provided by the Gutenberg Project.  Each book was then extracted as a subset.  The goal was the ability to compare and contrast within a single context.
 
-![IMAGE](dante-multibar.png)
+![IMAGE](dante_multibar.png)
 
 -**Small Multiples**  This plot uses a few some very simple techniques to exhibit frequent word stems common to all three books.  The color scheme was selected to further the concept of hell, purgatory, and the afterlife.  The plot may appear simple, however it is very complex and was somewhat difficult to implement as envisioned.  
 
 The grouped bar chart is faceted, but centered instead of in its natural position of the facet.  The user can select individual books or pairs and the colors represented by the color scheme remain constant.  Also present is the ability to show how many words are represented.  Theoretically all could be shown, but the visual appeal decreases as more word stems are added.  The small multiples allows the user to see similarities as well as differences among various subgroups.  Due to the quantity of data, this plot may take a little while to load.
 
-![IMAGE](dante-wordcloud.png)
+![IMAGE](dante_wordcloud.png)
 
 -**Word Clouds**  Because of the corpus selected, additional wordclouds are able to be rendered.  A black background was chosen because the contrast has visual appeal and the user does not have to read the text, but visualize it.  The dynamic menu allows the color choice to remain constant throughout the user experience.
 -Comparison Cloud shows how words within each work deviates from mean frequency of the overall corpus.

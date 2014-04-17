@@ -1,2110 +1,3 @@
-particMeans
-mean(particMeans)
-particframej
-particSums
-particMeans
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-actions
-particmatrixj
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix()#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions)#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-actions
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.35  ## cost to the democrats#
-costR<- 0.35 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.40  ## cost to the democrats#
-costR<- 0.40 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.50  ## cost to the democrats#
-costR<- 0.50 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.60  ## cost to the democrats#
-costR<- 0.60 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.55  ## cost to the democrats#
-costR<- 0.55 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.50  ## cost to the democrats#
-costR<- 0.50 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.47 ## cost to the democrats#
-costR<- 0.47 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.47 ## cost to the democrats#
-costR<- 0.47 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 1 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.47 ## cost to the democrats#
-costR<- 0.47 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
-R code for a behavioral model of turnout#
-## Jeremy Gilmore#
-## Adapted from James Fowler (2003)#
-rm(list=ls(all=TRUE))#
-#
-nPeriods<-1000 ## number of periods#
-nSims<-1000 ## number of simulations#
-#
-nDems<- 960 ## number of Democrats#
-nReps<-961 ## number of Republicans#
-n<-nDems+nReps ## number of citizens#
-#
-winPayoffD<-1.0 ## Dem payoff for winning#
-winPayoffR<-1.0 ## Rep payoff for winning#
-#
-losePayoffD<-0 ## Dem payoff for winning#
-losePayoffR<-0 ## Rep payoff for winning#
-#
-costD<- 0.5 ## cost to the democrats#
-costR<- 0.5 ## cost to the republicans#
-#
-iaspirationD<- 0.5 ## initial aspiration Dems#
-iaspirationR<- 0.5 ## initial aspiration Reps#
-#
-iturnoutpropensityD<-0.5 ## initial propensity to turnout Dems#
-iturnoutpropensityR<-0.5 ## initial propensity to turnout Reps#
-#
-## auxilary parameters#
-#
-tau<- 0 ## if 1, use Bush Mosteller rule, if 0, unbiased adjustment#
-#
-alpha<-0.1  ## propensity update weight for success#
-beta<-0.1   ## propensity update weight for failure#
-lambda<-0.95 ## weight for aspiration update#
-inert<-0.01 ## probability a voter updates propensity or aspiration#
-support<-0.2 ## support of random payoff shock#
-#
-## payoff function#
-payofff<-function(winner,preference,cost,action) #
-  preference*(winner*winPayoffR+(1-winner)*losePayoffR)+#
-  (1-preference)*(winner*losePayoffD+(1-winner)*winPayoffD)-#
-  action*cost+round(runif(length(action),-support/2,support/2),3)#
-#
-## aspiration update function#
-aspirationf<-function(aspiration,payoff)#
-  ((aspiration>payoff)*floor(1000*(lambda*aspiration+(1-lambda)*payoff))+#
-  (aspiration<payoff)*ceiling(1000*(lambda*aspiration+(1-lambda)*payoff)))/1000+#
-  (aspiration==payoff)*aspiration#
-#
-## adjustment for propensities#
-  propensityf<-function(propensity,aspiration,action,payoff)#
-    pmin(1,pmax(0,((action) *#
-     ((payoff>=aspiration)*ceiling(1000*(propensity+alpha*(1-tau*propensity)))+#
-      (payoff<aspiration)*floor(1000*(propensity-beta*(1-tau*(1-propensity)))))+#
-    (1-action) * #
-     ((payoff>=aspiration)*floor(1000*(propensity-alpha*(1-tau*(1-propensity))))+#
-      (payoff<aspiration)*ceiling(1000*(propensity+beta*(1-tau*propensity)))))/1000))#
-#
-## voter preferences#
-preferences<-c(rep(0,nDems),rep(1,nReps))#
-#
-## voter costs#
-costs<-c(rep(costD,nDems),rep(costR,nReps))#
-#
-##for (i in 1:nSims) {#
-#
-  ## initial values#
-  voteDts<-NULL ## init Dem vote time series#
-  voteRts<-NULL ## init Rep vote time series#
-  votematrixj<-matrix(nrow=(0), ncol=(0))#
-  particmatrixj<-matrix(nrow=(0), ncol=(0))#
-#
-  ## propensity to vote#
-  propensities<-c(rep(iturnoutpropensityD,nDems),rep(iturnoutpropensityR,nReps))#
-#
-  ## voter aspirations#
-  aspirations<-c(rep(iaspirationD,nDems),rep(iaspirationR,nReps))#
-#
-  for (j in 1:nPeriods) {#
-#
-    ## voters choose whether or not to vote#
-    actions<-runif(n,0,1)<propensities#
-#
-	## individual voting habits#
-	if(j > nPeriods-7){#
-	votematrixj<- list(votematrixj, actions)#
-	} #
-#
-    ## total votes#
-    voteD<-sum((1-preferences)*actions)#
-    voteR<-sum(preferences*actions)#
-    voteDts<-c(voteDts,voteD/nDems)#
-    voteRts<-c(voteRts,voteR/nReps)#
-	particmatrixj<-list(particmatrixj,actions)#
-#
-    ## winner determined#
-    winner<-(voteR>voteD)+(voteD==voteR)*(runif(1,0,1)>0.5)#
-#
-    ## voter payoffs#
-    payoffs<-payofff(winner,preferences,costs,actions)#
-#
-    ## set up voter index vector for propensities#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update propensities#
-    propensities[noninertials]<-propensityf(propensities[noninertials],#
-      aspirations[noninertials],actions[noninertials],payoffs[noninertials])#
-#
-    ## set up voter index vector for aspirations#
-    noninertials<-which(runif(n,0,1)>inert)#
-#
-    ## update aspirations#
-    aspirations[noninertials]<-aspirationf(aspirations[noninertials],#
-      payoffs[noninertials])#
-  }#
-##}#
-#
-##Primary Election Data#
-primaryframej <- data.frame(matrix(unlist(list(votematrixj)), nrow=n, byrow=TRUE))#
-primarySums<- colSums(primaryframej)#
-primaryMeans<- colMeans(primaryframej)#
-primarytotalvotes<-rowSums(primaryframej)#
-primaryparticipation<-table(primarytotalvotes)#
-primaryparticipation#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-#
-elections<-c(1:nPeriods)#
-meanparticipation<-(voteRts+voteDts)/2#
-#
-voteDts[nPeriods]#
-voteRts[nPeriods]#
-mean(actions) ## For last election only#
-#
-##Habitual Voting Behavior#
-primaryhabitual<-(((primaryparticipation["0"])+(primaryparticipation["7"]))/n)#
-primaryhabitual#
-#
-##Voting Trends#
-particframej <- data.frame(matrix(unlist(list(particmatrixj)), nrow=n, byrow=TRUE))#
-particSums<- colSums(particframej)#
-particMeans<- colMeans(particframej)#
-mean(particMeans) ## Mean of Actions over all j elections#
-partictotalvotes<-rowSums(particframej)#
-#
-## Plots#
-par(mfrow=c(2,2))#
-barplot(primaryparticipation, main="BDT Primary Election Participation", xlab="Number of Times Respondents Voted", ylab="Number of Respondents")#
-plot(elections, voteRts, cex=.3, xlab="Elections", ylab="Republican Votes")#
-plot(elections, voteDts, cex=.3, xlab="Elections", ylab="Democratic Votes")#
-plot(elections, particMeans, cex=.3, xlab="Elections", ylab="Mean Participation")
 R code for a behavioral model of turnout#
 ## Jeremy Gilmore#
 ## Adapted from James Fowler (2003)#
@@ -13522,6 +11415,7 @@ library(shiny)#
 setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
 #
 source("dante.r")#
+source("ibm.r")#
 #
 corp_df <- data.frame(#
     Inferno = dante_matrix[, "danteinferno.txt"],#
@@ -13680,7 +11574,7 @@ shinyServer(function(input, output) {#
 			return(corp_df)#
 		}#
 		if(input$input_type=="Many Eyes") {#
-			return(corp_df)#
+			return(ibm_df)#
 		}#
 	})#
 	getplottype <- reactive({#
@@ -13714,7 +11608,6 @@ shinyServer(function(input, output) {#
 	}, width = 700, height = 600)#
 })
 runApp()
-runApp()
 library(wordcloud)#
 library(ggplot2)#
 library(reshape2)#
@@ -13724,6 +11617,7 @@ library(shiny)#
 setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
 #
 source("dante.r")#
+source("ibm.r")#
 #
 corp_df <- data.frame(#
     Inferno = dante_matrix[, "danteinferno.txt"],#
@@ -13732,8 +11626,10 @@ corp_df <- data.frame(#
     stringsAsFactors = FALSE)#
 #
 corp_matrix <- as.matrix(corp_df)#
-# ibm_df <- corp_df[4]#
-# ibm_matrix <- as.matrix(ibm_df)#
+#
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)#
 #
 common_corp_df <- corp_df#
 common_corp_df[corp_df==0] <- NA#
@@ -13845,7 +11741,7 @@ shinyServer(function(input, output) {#
 						min = 1, max = 24, value = 12, step = 1#
 					)),#
 					br(),#
-					br(), "Please be patient.  Some plots load slowly."#
+					br(),#
 					includeHTML("aboutwordstems.html")#
 				),#
 			"Word Cloud" = fluidRow(#
@@ -13882,7 +11778,7 @@ shinyServer(function(input, output) {#
 			return(corp_df)#
 		}#
 		if(input$input_type=="Many Eyes") {#
-			return(corp_df)#
+			return(ibm_df)#
 		}#
 	})#
 	getplottype <- reactive({#
@@ -13915,6 +11811,7 @@ shinyServer(function(input, output) {#
 		print(plotResults)#
 	}, width = 700, height = 600)#
 })
+runApp()
 library(wordcloud)#
 library(ggplot2)#
 library(reshape2)#
@@ -13924,6 +11821,7 @@ library(shiny)#
 setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
 #
 source("dante.r")#
+source("ibm.r")#
 #
 corp_df <- data.frame(#
     Inferno = dante_matrix[, "danteinferno.txt"],#
@@ -13932,8 +11830,10 @@ corp_df <- data.frame(#
     stringsAsFactors = FALSE)#
 #
 corp_matrix <- as.matrix(corp_df)#
-# ibm_df <- corp_df[4]#
-# ibm_matrix <- as.matrix(ibm_df)#
+#
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)#
 #
 common_corp_df <- corp_df#
 common_corp_df[corp_df==0] <- NA#
@@ -14012,7 +11912,1255 @@ plot_function <- function(data, plot_type, cloudtype, books, wordcount, colorSch
 		random.order=FALSE,color=palette[3],main="Paradise")#
 	}#
 	if(plot_type=="manyeyes") {#
+		commonality.cloud(corp_m, max.words=50, #
+		random.order=TRUE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+}#
+#
+###
+#
+shinyServer(function(input, output) {#
+	cat("Press \"ESC\" to exit...\n")#
+#
+	output$ui <- renderUI({#
+		if (is.null(input$input_type))#
+			return()#
+		switch(input$input_type,#
+			"Word Use" = fluidRow(#
+				column(6, h5("Books"),#
+					checkboxInput("Inferno", "Inferno",#
+									value = TRUE#
+					),#
+					checkboxInput("Purgatory", "Purgatory",#
+									value = TRUE#
+					),#
+					checkboxInput("Paradise", "Paradise",#
+									value = TRUE#
+					)#
+					),#
+				column(6,#
+					sliderInput(inputId = "wordcount", #
+						label = h5("Number of Words"), #
+						min = 1, max = 24, value = 12, step = 1#
+					)),#
+					br(),#
+					br(),#
+					includeHTML("aboutwordstems.html")#
+				),#
+			"Word Cloud" = fluidRow(#
+				column(12, "Please be patient.  Some plots load slowly.",#
+					br(),#
+					radioButtons("cloudtype", h5("Type of Cloud"),#
+						choices = c("Commonality Cloud" = "commonality",#
+									"Comparison Cloud" = "comparison",#
+									"Inferno Only" = "inferno",#
+									"Purgatory Only" = "purgatory",#
+									"Paradise Only" = "paradise"),#
+						selected = "commonality"#
+					),#
+					includeHTML("aboutclouds.html")#
+				)#
+			),#
+			"Many Eyes" = fluidRow(#
+				column(12,#
+					includeHTML("aboutmanyeyes.html"),#
+#
+					h5("Click below to go to Many Eyes:"),#
+					helpText( a("Word Tree of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-word-tree", target="_blank")),#
+					helpText( a("Phrase Net of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-phrase-ne", target="_blank"))#
+#
+				)#
+				)#
+		)#
+	})#
+	getdata <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return(common_corp_df)#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return(corp_df)#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return(ibm_df)#
+		}#
+	})#
+	getplottype <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return("bar")#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return("wordcloud")#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return("manyeyes")#
+		}#
+	})#
+	getbooks <- reactive ({#
+		results <- c(input$Inferno, input$Purgatory, input$Paradise)#
+		return(results)#
+	})#
+	getcolor <- reactive({#
+		return(input$colorScheme)#
+	})#
+	getcloudtype <- reactive({#
+		return(input$cloudtype)#
+	})#
+	getimagetype <- reactive({#
+		return(input$image)#
+	})#
+	output$plotResults <- renderPlot ({#
+		plotResults <- plot_function(getdata(), getplottype(), #
+		getcloudtype(), getbooks(), input$wordcount, getcolor(), "black")#
+		print(plotResults)#
+	}, width = 700, height = 600)#
+})
+runApp()
+ibm_df
+library(wordcloud)#
+library(ggplot2)#
+library(reshape2)#
+library(grid)#
+library(shiny)#
+#
+setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
+#
+source("dante.r")#
+source("ibm.r")#
+#
+corp_df <- data.frame(#
+    Inferno = dante_matrix[, "danteinferno.txt"],#
+    Purgatory = dante_matrix[, "dantepurgatory.txt"],#
+    Paradise = dante_matrix[, "danteparadise.txt"],#
+    stringsAsFactors = FALSE)#
+#
+corp_matrix <- as.matrix(corp_df)#
+#
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)#
+#
+common_corp_df <- corp_df#
+common_corp_df[corp_df==0] <- NA#
+common_corp_df <- common_corp_df[!is.na(common_corp_df[1]) & !is.na(common_corp_df[2]) & !is.na(common_corp_df[3]),]#
+#
+common_corp_df$wordsums <- rowSums(common_corp_df)#
+common_corp_df <- common_corp_df[with(common_corp_df, order(-wordsums)),]#
+#
+common_corp_df <- common_corp_df[1:3]#
+#
+plot_list <- list()#
+#
+plot_function <- function(data, plot_type, cloudtype, books, wordcount, colorScheme, bg) {#
+	palette <- rev(brewer.pal(3,colorScheme))#
+	corp_m <- as.matrix(data)#
+	par(mfrow=c(1,1), bg=bg)#
+	if(plot_type=="bar") {#
+		bar_df <- head(data[books], wordcount)#
+		bar_df$word <- rownames(bar_df)#
+		bar_df <- melt(bar_df, id.vars = "word")#
+		for(i in bar_df$word) {#
+			p <- ggplot(bar_df, aes("i", value)) +#
+			geom_bar(aes(fill=variable),#
+			position ="dodge",#
+			stat="identity",#
+			width=.25) +#
+			theme(panel.grid.major = element_blank(),#
+			panel.grid.minor = element_blank(),#
+			panel.background = element_rect(fill="white"),#
+			plot.background = element_blank(),#
+			axis.ticks = element_blank(),#
+			axis.text.x = element_blank(),#
+			axis.text.y = element_blank(),#
+			axis.title.x = element_blank(),#
+			axis.title.y = element_blank(),#
+			legend.title = element_blank(),#
+			legend.text = element_text(size=14, face="bold")) +#
+			ggtitle(expression(bold("Frequent Word Stems\n"))) +#
+			scale_fill_manual(values=palette[books]) + # or [1:3]#
+			facet_wrap( ~ word, ncol=3) +#
+			theme(strip.background = element_rect(fill = "white"),#
+			panel.margin = unit(2,"lines"),#
+			strip.text = element_text(size = 12, face="bold")) #
+#
+			plot_list<- p#
+			return(plot_list)#
+		}#
+	}#
+	if(cloudtype=="comparison") {#
+		comparison.cloud(corp_m, max.words=200,#
+		random.order=FALSE,colors=palette,#
+		title.size = .001,#
+		main="Differences Between Inferno, Purgatory and Paradise")#
+	}#
+	if(cloudtype=="commonality") {#
 		commonality.cloud(corp_m, max.words=200, #
+		random.order=FALSE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+	if(cloudtype=="inferno") {#
+		inferno_df <- corp_df[1]#
+		inferno_matrix <- as.matrix(inferno_df)#
+		commonality.cloud(inferno_matrix, max.words=100,#
+		random.order=FALSE,color=palette[1],main="Inferno")#
+	}#
+	if(cloudtype=="purgatory") {#
+		purgatory_df <- corp_df[2]#
+		purgatory_matrix <- as.matrix(purgatory_df)#
+		commonality.cloud(purgatory_matrix, max.words=100,#
+		random.order=FALSE,color=palette[2],main="Purgatory")#
+	}#
+	if(cloudtype=="paradise") {#
+		paradise_df <- corp_df[3]#
+		paradise_matrix <- as.matrix(paradise_df)#
+		commonality.cloud(paradise_matrix, max.words=100,#
+		random.order=FALSE,color=palette[3],main="Paradise")#
+	}#
+	if(plot_type=="manyeyes") {#
+		commonality.cloud(ibm_df, max.words=50, #
+		random.order=TRUE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+}#
+#
+###
+#
+shinyServer(function(input, output) {#
+	cat("Press \"ESC\" to exit...\n")#
+#
+	output$ui <- renderUI({#
+		if (is.null(input$input_type))#
+			return()#
+		switch(input$input_type,#
+			"Word Use" = fluidRow(#
+				column(6, h5("Books"),#
+					checkboxInput("Inferno", "Inferno",#
+									value = TRUE#
+					),#
+					checkboxInput("Purgatory", "Purgatory",#
+									value = TRUE#
+					),#
+					checkboxInput("Paradise", "Paradise",#
+									value = TRUE#
+					)#
+					),#
+				column(6,#
+					sliderInput(inputId = "wordcount", #
+						label = h5("Number of Words"), #
+						min = 1, max = 24, value = 12, step = 1#
+					)),#
+					br(),#
+					br(),#
+					includeHTML("aboutwordstems.html")#
+				),#
+			"Word Cloud" = fluidRow(#
+				column(12, "Please be patient.  Some plots load slowly.",#
+					br(),#
+					radioButtons("cloudtype", h5("Type of Cloud"),#
+						choices = c("Commonality Cloud" = "commonality",#
+									"Comparison Cloud" = "comparison",#
+									"Inferno Only" = "inferno",#
+									"Purgatory Only" = "purgatory",#
+									"Paradise Only" = "paradise"),#
+						selected = "commonality"#
+					),#
+					includeHTML("aboutclouds.html")#
+				)#
+			),#
+			"Many Eyes" = fluidRow(#
+				column(12,#
+					includeHTML("aboutmanyeyes.html"),#
+#
+					h5("Click below to go to Many Eyes:"),#
+					helpText( a("Word Tree of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-word-tree", target="_blank")),#
+					helpText( a("Phrase Net of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-phrase-ne", target="_blank"))#
+#
+				)#
+				)#
+		)#
+	})#
+	getdata <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return(common_corp_df)#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return(corp_df)#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return(ibm_df)#
+		}#
+	})#
+	getplottype <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return("bar")#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return("wordcloud")#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return("manyeyes")#
+		}#
+	})#
+	getbooks <- reactive ({#
+		results <- c(input$Inferno, input$Purgatory, input$Paradise)#
+		return(results)#
+	})#
+	getcolor <- reactive({#
+		return(input$colorScheme)#
+	})#
+	getcloudtype <- reactive({#
+		return(input$cloudtype)#
+	})#
+	getimagetype <- reactive({#
+		return(input$image)#
+	})#
+	output$plotResults <- renderPlot ({#
+		plotResults <- plot_function(getdata(), getplottype(), #
+		getcloudtype(), getbooks(), input$wordcount, getcolor(), "black")#
+		print(plotResults)#
+	}, width = 700, height = 600)#
+})
+ibm_df
+runApp()
+ibm_df$word <- rownames(ibm_df)
+ibm
+ibm_df
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)
+ibm_df
+ibm_matrix <- as.matrix(ibm_df)
+ibm_matrix
+library(wordcloud)#
+library(ggplot2)#
+library(reshape2)#
+library(grid)#
+library(shiny)#
+#
+setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
+#
+source("dante.r")#
+source("ibm.r")#
+#
+corp_df <- data.frame(#
+    Inferno = dante_matrix[, "danteinferno.txt"],#
+    Purgatory = dante_matrix[, "dantepurgatory.txt"],#
+    Paradise = dante_matrix[, "danteparadise.txt"],#
+    stringsAsFactors = FALSE)#
+#
+corp_matrix <- as.matrix(corp_df)#
+#
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)#
+ibm_matrix <- as.matrix(ibm_df)#
+#ibm_df$word <- rownames(ibm_df)#
+#
+common_corp_df <- corp_df#
+common_corp_df[corp_df==0] <- NA#
+common_corp_df <- common_corp_df[!is.na(common_corp_df[1]) & !is.na(common_corp_df[2]) & !is.na(common_corp_df[3]),]#
+#
+common_corp_df$wordsums <- rowSums(common_corp_df)#
+common_corp_df <- common_corp_df[with(common_corp_df, order(-wordsums)),]#
+#
+common_corp_df <- common_corp_df[1:3]#
+#
+plot_list <- list()#
+#
+plot_function <- function(data, plot_type, cloudtype, books, wordcount, colorScheme, bg) {#
+	palette <- rev(brewer.pal(3,colorScheme))#
+	corp_m <- as.matrix(data)#
+	par(mfrow=c(1,1), bg=bg)#
+	if(plot_type=="bar") {#
+		bar_df <- head(data[books], wordcount)#
+		bar_df$word <- rownames(bar_df)#
+		bar_df <- melt(bar_df, id.vars = "word")#
+		for(i in bar_df$word) {#
+			p <- ggplot(bar_df, aes("i", value)) +#
+			geom_bar(aes(fill=variable),#
+			position ="dodge",#
+			stat="identity",#
+			width=.25) +#
+			theme(panel.grid.major = element_blank(),#
+			panel.grid.minor = element_blank(),#
+			panel.background = element_rect(fill="white"),#
+			plot.background = element_blank(),#
+			axis.ticks = element_blank(),#
+			axis.text.x = element_blank(),#
+			axis.text.y = element_blank(),#
+			axis.title.x = element_blank(),#
+			axis.title.y = element_blank(),#
+			legend.title = element_blank(),#
+			legend.text = element_text(size=14, face="bold")) +#
+			ggtitle(expression(bold("Frequent Word Stems\n"))) +#
+			scale_fill_manual(values=palette[books]) + # or [1:3]#
+			facet_wrap( ~ word, ncol=3) +#
+			theme(strip.background = element_rect(fill = "white"),#
+			panel.margin = unit(2,"lines"),#
+			strip.text = element_text(size = 12, face="bold")) #
+#
+			plot_list<- p#
+			return(plot_list)#
+		}#
+	}#
+	if(cloudtype=="comparison") {#
+		comparison.cloud(corp_m, max.words=200,#
+		random.order=FALSE,colors=palette,#
+		title.size = .001,#
+		main="Differences Between Inferno, Purgatory and Paradise")#
+	}#
+	if(cloudtype=="commonality") {#
+		commonality.cloud(corp_m, max.words=200, #
+		random.order=FALSE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+	if(cloudtype=="inferno") {#
+		inferno_df <- corp_df[1]#
+		inferno_matrix <- as.matrix(inferno_df)#
+		commonality.cloud(inferno_matrix, max.words=100,#
+		random.order=FALSE,color=palette[1],main="Inferno")#
+	}#
+	if(cloudtype=="purgatory") {#
+		purgatory_df <- corp_df[2]#
+		purgatory_matrix <- as.matrix(purgatory_df)#
+		commonality.cloud(purgatory_matrix, max.words=100,#
+		random.order=FALSE,color=palette[2],main="Purgatory")#
+	}#
+	if(cloudtype=="paradise") {#
+		paradise_df <- corp_df[3]#
+		paradise_matrix <- as.matrix(paradise_df)#
+		commonality.cloud(paradise_matrix, max.words=100,#
+		random.order=FALSE,color=palette[3],main="Paradise")#
+	}#
+	if(plot_type=="manyeyes") {#
+		commonality.cloud(ibm_matrix, max.words=50, #
+		random.order=TRUE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+}#
+#
+###
+#
+shinyServer(function(input, output) {#
+	cat("Press \"ESC\" to exit...\n")#
+#
+	output$ui <- renderUI({#
+		if (is.null(input$input_type))#
+			return()#
+		switch(input$input_type,#
+			"Word Use" = fluidRow(#
+				column(6, h5("Books"),#
+					checkboxInput("Inferno", "Inferno",#
+									value = TRUE#
+					),#
+					checkboxInput("Purgatory", "Purgatory",#
+									value = TRUE#
+					),#
+					checkboxInput("Paradise", "Paradise",#
+									value = TRUE#
+					)#
+					),#
+				column(6,#
+					sliderInput(inputId = "wordcount", #
+						label = h5("Number of Words"), #
+						min = 1, max = 24, value = 12, step = 1#
+					)),#
+					br(),#
+					br(),#
+					includeHTML("aboutwordstems.html")#
+				),#
+			"Word Cloud" = fluidRow(#
+				column(12, "Please be patient.  Some plots load slowly.",#
+					br(),#
+					radioButtons("cloudtype", h5("Type of Cloud"),#
+						choices = c("Commonality Cloud" = "commonality",#
+									"Comparison Cloud" = "comparison",#
+									"Inferno Only" = "inferno",#
+									"Purgatory Only" = "purgatory",#
+									"Paradise Only" = "paradise"),#
+						selected = "commonality"#
+					),#
+					includeHTML("aboutclouds.html")#
+				)#
+			),#
+			"Many Eyes" = fluidRow(#
+				column(12,#
+					includeHTML("aboutmanyeyes.html"),#
+#
+					h5("Click below to go to Many Eyes:"),#
+					helpText( a("Word Tree of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-word-tree", target="_blank")),#
+					helpText( a("Phrase Net of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-phrase-ne", target="_blank"))#
+#
+				)#
+				)#
+		)#
+	})#
+	getdata <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return(common_corp_df)#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return(corp_df)#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return(ibm_df)#
+		}#
+	})#
+	getplottype <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return("bar")#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return("wordcloud")#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return("manyeyes")#
+		}#
+	})#
+	getbooks <- reactive ({#
+		results <- c(input$Inferno, input$Purgatory, input$Paradise)#
+		return(results)#
+	})#
+	getcolor <- reactive({#
+		return(input$colorScheme)#
+	})#
+	getcloudtype <- reactive({#
+		return(input$cloudtype)#
+	})#
+	getimagetype <- reactive({#
+		return(input$image)#
+	})#
+	output$plotResults <- renderPlot ({#
+		plotResults <- plot_function(getdata(), getplottype(), #
+		getcloudtype(), getbooks(), input$wordcount, getcolor(), "black")#
+		print(plotResults)#
+	}, width = 700, height = 600)#
+})
+runApp()
+ibm_df
+library(wordcloud)#
+library(ggplot2)#
+library(reshape2)#
+library(grid)#
+library(shiny)#
+#
+setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
+#
+source("dante.r")#
+source("ibm.r")#
+#
+corp_df <- data.frame(#
+    Inferno = dante_matrix[, "danteinferno.txt"],#
+    Purgatory = dante_matrix[, "dantepurgatory.txt"],#
+    Paradise = dante_matrix[, "danteparadise.txt"],#
+    stringsAsFactors = FALSE)#
+#
+corp_matrix <- as.matrix(corp_df)#
+#
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)#
+ibm_matrix <- as.matrix(ibm_df)#
+#ibm_df$word <- rownames(ibm_df)#
+#
+common_corp_df <- corp_df#
+common_corp_df[corp_df==0] <- NA#
+common_corp_df <- common_corp_df[!is.na(common_corp_df[1]) & !is.na(common_corp_df[2]) & !is.na(common_corp_df[3]),]#
+#
+common_corp_df$wordsums <- rowSums(common_corp_df)#
+common_corp_df <- common_corp_df[with(common_corp_df, order(-wordsums)),]#
+#
+common_corp_df <- common_corp_df[1:3]#
+#
+plot_list <- list()#
+#
+plot_function <- function(data, plot_type, cloudtype, books, wordcount, colorScheme, bg) {#
+	palette <- rev(brewer.pal(3,colorScheme))#
+	corp_m <- as.matrix(data)#
+	par(mfrow=c(1,1), bg=bg)#
+	if(plot_type=="bar") {#
+		bar_df <- head(data[books], wordcount)#
+		bar_df$word <- rownames(bar_df)#
+		bar_df <- melt(bar_df, id.vars = "word")#
+		for(i in bar_df$word) {#
+			p <- ggplot(bar_df, aes("i", value)) +#
+			geom_bar(aes(fill=variable),#
+			position ="dodge",#
+			stat="identity",#
+			width=.25) +#
+			theme(panel.grid.major = element_blank(),#
+			panel.grid.minor = element_blank(),#
+			panel.background = element_rect(fill="white"),#
+			plot.background = element_blank(),#
+			axis.ticks = element_blank(),#
+			axis.text.x = element_blank(),#
+			axis.text.y = element_blank(),#
+			axis.title.x = element_blank(),#
+			axis.title.y = element_blank(),#
+			legend.title = element_blank(),#
+			legend.text = element_text(size=14, face="bold")) +#
+			ggtitle(expression(bold("Frequent Word Stems\n"))) +#
+			scale_fill_manual(values=palette[books]) + # or [1:3]#
+			facet_wrap( ~ word, ncol=3) +#
+			theme(strip.background = element_rect(fill = "white"),#
+			panel.margin = unit(2,"lines"),#
+			strip.text = element_text(size = 12, face="bold")) #
+#
+			plot_list<- p#
+			return(plot_list)#
+		}#
+	}#
+	if(cloudtype=="comparison") {#
+		comparison.cloud(corp_m, max.words=200,#
+		random.order=FALSE,colors=palette,#
+		title.size = .001,#
+		main="Differences Between Inferno, Purgatory and Paradise")#
+	}#
+	if(cloudtype=="commonality") {#
+		commonality.cloud(corp_m, max.words=200, #
+		random.order=FALSE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+	if(cloudtype=="inferno") {#
+		inferno_df <- corp_df[1]#
+		inferno_matrix <- as.matrix(inferno_df)#
+		commonality.cloud(inferno_matrix, max.words=100,#
+		random.order=FALSE,color=palette[1],main="Inferno")#
+	}#
+	if(cloudtype=="purgatory") {#
+		purgatory_df <- corp_df[2]#
+		purgatory_matrix <- as.matrix(purgatory_df)#
+		commonality.cloud(purgatory_matrix, max.words=100,#
+		random.order=FALSE,color=palette[2],main="Purgatory")#
+	}#
+	if(cloudtype=="paradise") {#
+		paradise_df <- corp_df[3]#
+		paradise_matrix <- as.matrix(paradise_df)#
+		commonality.cloud(paradise_matrix, max.words=100,#
+		random.order=FALSE,color=palette[3],main="Paradise")#
+	}#
+	if(plot_type=="manyeyes") {#
+		wordcloud(ibm_df$word, ibm_df$freq, random.order=FALSE,#
+			colors=Palette)#
+		# commonality.cloud(ibm_df, max.words=50, #
+		# random.order=TRUE, color=palette,#
+		# main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+}#
+#
+###
+#
+shinyServer(function(input, output) {#
+	cat("Press \"ESC\" to exit...\n")#
+#
+	output$ui <- renderUI({#
+		if (is.null(input$input_type))#
+			return()#
+		switch(input$input_type,#
+			"Word Use" = fluidRow(#
+				column(6, h5("Books"),#
+					checkboxInput("Inferno", "Inferno",#
+									value = TRUE#
+					),#
+					checkboxInput("Purgatory", "Purgatory",#
+									value = TRUE#
+					),#
+					checkboxInput("Paradise", "Paradise",#
+									value = TRUE#
+					)#
+					),#
+				column(6,#
+					sliderInput(inputId = "wordcount", #
+						label = h5("Number of Words"), #
+						min = 1, max = 24, value = 12, step = 1#
+					)),#
+					br(),#
+					br(),#
+					includeHTML("aboutwordstems.html")#
+				),#
+			"Word Cloud" = fluidRow(#
+				column(12, "Please be patient.  Some plots load slowly.",#
+					br(),#
+					radioButtons("cloudtype", h5("Type of Cloud"),#
+						choices = c("Commonality Cloud" = "commonality",#
+									"Comparison Cloud" = "comparison",#
+									"Inferno Only" = "inferno",#
+									"Purgatory Only" = "purgatory",#
+									"Paradise Only" = "paradise"),#
+						selected = "commonality"#
+					),#
+					includeHTML("aboutclouds.html")#
+				)#
+			),#
+			"Many Eyes" = fluidRow(#
+				column(12,#
+					includeHTML("aboutmanyeyes.html"),#
+#
+					h5("Click below to go to Many Eyes:"),#
+					helpText( a("Word Tree of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-word-tree", target="_blank")),#
+					helpText( a("Phrase Net of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-phrase-ne", target="_blank"))#
+#
+				)#
+				)#
+		)#
+	})#
+	getdata <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return(common_corp_df)#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return(corp_df)#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return(ibm_df)#
+		}#
+	})#
+	getplottype <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return("bar")#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return("wordcloud")#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return("manyeyes")#
+		}#
+	})#
+	getbooks <- reactive ({#
+		results <- c(input$Inferno, input$Purgatory, input$Paradise)#
+		return(results)#
+	})#
+	getcolor <- reactive({#
+		return(input$colorScheme)#
+	})#
+	getcloudtype <- reactive({#
+		return(input$cloudtype)#
+	})#
+	getimagetype <- reactive({#
+		return(input$image)#
+	})#
+	output$plotResults <- renderPlot ({#
+		plotResults <- plot_function(getdata(), getplottype(), #
+		getcloudtype(), getbooks(), input$wordcount, getcolor(), "black")#
+		print(plotResults)#
+	}, width = 700, height = 600)#
+})
+runApp()
+library(wordcloud)#
+library(ggplot2)#
+library(reshape2)#
+library(grid)#
+library(shiny)#
+#
+setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
+#
+source("dante.r")#
+source("ibm.r")#
+#
+corp_df <- data.frame(#
+    Inferno = dante_matrix[, "danteinferno.txt"],#
+    Purgatory = dante_matrix[, "dantepurgatory.txt"],#
+    Paradise = dante_matrix[, "danteparadise.txt"],#
+    stringsAsFactors = FALSE)#
+#
+corp_matrix <- as.matrix(corp_df)#
+#
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)#
+ibm_matrix <- as.matrix(ibm_df)#
+#ibm_df$word <- rownames(ibm_df)#
+#
+common_corp_df <- corp_df#
+common_corp_df[corp_df==0] <- NA#
+common_corp_df <- common_corp_df[!is.na(common_corp_df[1]) & !is.na(common_corp_df[2]) & !is.na(common_corp_df[3]),]#
+#
+common_corp_df$wordsums <- rowSums(common_corp_df)#
+common_corp_df <- common_corp_df[with(common_corp_df, order(-wordsums)),]#
+#
+common_corp_df <- common_corp_df[1:3]#
+#
+plot_list <- list()#
+#
+plot_function <- function(data, plot_type, cloudtype, books, wordcount, colorScheme, bg) {#
+	palette <- rev(brewer.pal(3,colorScheme))#
+	corp_m <- as.matrix(data)#
+	par(mfrow=c(1,1), bg=bg)#
+	if(plot_type=="bar") {#
+		bar_df <- head(data[books], wordcount)#
+		bar_df$word <- rownames(bar_df)#
+		bar_df <- melt(bar_df, id.vars = "word")#
+		for(i in bar_df$word) {#
+			p <- ggplot(bar_df, aes("i", value)) +#
+			geom_bar(aes(fill=variable),#
+			position ="dodge",#
+			stat="identity",#
+			width=.25) +#
+			theme(panel.grid.major = element_blank(),#
+			panel.grid.minor = element_blank(),#
+			panel.background = element_rect(fill="white"),#
+			plot.background = element_blank(),#
+			axis.ticks = element_blank(),#
+			axis.text.x = element_blank(),#
+			axis.text.y = element_blank(),#
+			axis.title.x = element_blank(),#
+			axis.title.y = element_blank(),#
+			legend.title = element_blank(),#
+			legend.text = element_text(size=14, face="bold")) +#
+			ggtitle(expression(bold("Frequent Word Stems\n"))) +#
+			scale_fill_manual(values=palette[books]) + # or [1:3]#
+			facet_wrap( ~ word, ncol=3) +#
+			theme(strip.background = element_rect(fill = "white"),#
+			panel.margin = unit(2,"lines"),#
+			strip.text = element_text(size = 12, face="bold")) #
+#
+			plot_list<- p#
+			return(plot_list)#
+		}#
+	}#
+	if(cloudtype=="comparison") {#
+		comparison.cloud(corp_m, max.words=200,#
+		random.order=FALSE,colors=palette,#
+		title.size = .001,#
+		main="Differences Between Inferno, Purgatory and Paradise")#
+	}#
+	if(cloudtype=="commonality") {#
+		commonality.cloud(corp_m, max.words=200, #
+		random.order=FALSE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+	if(cloudtype=="inferno") {#
+		inferno_df <- corp_df[1]#
+		inferno_matrix <- as.matrix(inferno_df)#
+		commonality.cloud(inferno_matrix, max.words=100,#
+		random.order=FALSE,color=palette[1],main="Inferno")#
+	}#
+	if(cloudtype=="purgatory") {#
+		purgatory_df <- corp_df[2]#
+		purgatory_matrix <- as.matrix(purgatory_df)#
+		commonality.cloud(purgatory_matrix, max.words=100,#
+		random.order=FALSE,color=palette[2],main="Purgatory")#
+	}#
+	if(cloudtype=="paradise") {#
+		paradise_df <- corp_df[3]#
+		paradise_matrix <- as.matrix(paradise_df)#
+		commonality.cloud(paradise_matrix, max.words=100,#
+		random.order=FALSE,color=palette[3],main="Paradise")#
+	}#
+	if(input_type=="manyeyes") {#
+		commonality.cloud(ibm_df, max.words=50, #
+		random.order=TRUE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+}#
+#
+###
+#
+shinyServer(function(input, output) {#
+	cat("Press \"ESC\" to exit...\n")#
+#
+	output$ui <- renderUI({#
+		if (is.null(input$input_type))#
+			return()#
+		switch(input$input_type,#
+			"Word Use" = fluidRow(#
+				column(6, h5("Books"),#
+					checkboxInput("Inferno", "Inferno",#
+									value = TRUE#
+					),#
+					checkboxInput("Purgatory", "Purgatory",#
+									value = TRUE#
+					),#
+					checkboxInput("Paradise", "Paradise",#
+									value = TRUE#
+					)#
+					),#
+				column(6,#
+					sliderInput(inputId = "wordcount", #
+						label = h5("Number of Words"), #
+						min = 1, max = 24, value = 12, step = 1#
+					)),#
+					br(),#
+					br(),#
+					includeHTML("aboutwordstems.html")#
+				),#
+			"Word Cloud" = fluidRow(#
+				column(12, "Please be patient.  Some plots load slowly.",#
+					br(),#
+					radioButtons("cloudtype", h5("Type of Cloud"),#
+						choices = c("Commonality Cloud" = "commonality",#
+									"Comparison Cloud" = "comparison",#
+									"Inferno Only" = "inferno",#
+									"Purgatory Only" = "purgatory",#
+									"Paradise Only" = "paradise"),#
+						selected = "commonality"#
+					),#
+					includeHTML("aboutclouds.html")#
+				)#
+			),#
+			"Many Eyes" = fluidRow(#
+				column(12,#
+					includeHTML("aboutmanyeyes.html"),#
+#
+					h5("Click below to go to Many Eyes:"),#
+					helpText( a("Word Tree of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-word-tree", target="_blank")),#
+					helpText( a("Phrase Net of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-phrase-ne", target="_blank"))#
+#
+				)#
+				)#
+		)#
+	})#
+	getdata <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return(common_corp_df)#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return(corp_df)#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return(corp_df)#
+		}#
+	})#
+	getplottype <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return("bar")#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return("wordcloud")#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return("manyeyes")#
+		}#
+	})#
+	getbooks <- reactive ({#
+		results <- c(input$Inferno, input$Purgatory, input$Paradise)#
+		return(results)#
+	})#
+	getcolor <- reactive({#
+		return(input$colorScheme)#
+	})#
+	getcloudtype <- reactive({#
+		return(input$cloudtype)#
+	})#
+	getimagetype <- reactive({#
+		return(input$image)#
+	})#
+	output$plotResults <- renderPlot ({#
+		plotResults <- plot_function(getdata(), getplottype(), #
+		getcloudtype(), getbooks(), input$wordcount, getcolor(), "black")#
+		print(plotResults)#
+	}, width = 700, height = 600)#
+})
+runApp()
+library(wordcloud)#
+library(ggplot2)#
+library(reshape2)#
+library(grid)#
+library(shiny)#
+#
+setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
+#
+source("dante.r")#
+source("ibm.r")#
+#
+corp_df <- data.frame(#
+    Inferno = dante_matrix[, "danteinferno.txt"],#
+    Purgatory = dante_matrix[, "dantepurgatory.txt"],#
+    Paradise = dante_matrix[, "danteparadise.txt"],#
+    stringsAsFactors = FALSE)#
+#
+corp_matrix <- as.matrix(corp_df)#
+#
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)#
+ibm_matrix <- as.matrix(ibm_df)#
+#ibm_df$word <- rownames(ibm_df)#
+#
+common_corp_df <- corp_df#
+common_corp_df[corp_df==0] <- NA#
+common_corp_df <- common_corp_df[!is.na(common_corp_df[1]) & !is.na(common_corp_df[2]) & !is.na(common_corp_df[3]),]#
+#
+common_corp_df$wordsums <- rowSums(common_corp_df)#
+common_corp_df <- common_corp_df[with(common_corp_df, order(-wordsums)),]#
+#
+common_corp_df <- common_corp_df[1:3]#
+#
+plot_list <- list()#
+#
+plot_function <- function(data, plot_type, cloudtype, books, wordcount, colorScheme, bg) {#
+	palette <- rev(brewer.pal(3,colorScheme))#
+	corp_m <- as.matrix(data)#
+	par(mfrow=c(1,1), bg=bg)#
+	if(plot_type=="bar") {#
+		bar_df <- head(data[books], wordcount)#
+		bar_df$word <- rownames(bar_df)#
+		bar_df <- melt(bar_df, id.vars = "word")#
+		for(i in bar_df$word) {#
+			p <- ggplot(bar_df, aes("i", value)) +#
+			geom_bar(aes(fill=variable),#
+			position ="dodge",#
+			stat="identity",#
+			width=.25) +#
+			theme(panel.grid.major = element_blank(),#
+			panel.grid.minor = element_blank(),#
+			panel.background = element_rect(fill="white"),#
+			plot.background = element_blank(),#
+			axis.ticks = element_blank(),#
+			axis.text.x = element_blank(),#
+			axis.text.y = element_blank(),#
+			axis.title.x = element_blank(),#
+			axis.title.y = element_blank(),#
+			legend.title = element_blank(),#
+			legend.text = element_text(size=14, face="bold")) +#
+			ggtitle(expression(bold("Frequent Word Stems\n"))) +#
+			scale_fill_manual(values=palette[books]) + # or [1:3]#
+			facet_wrap( ~ word, ncol=3) +#
+			theme(strip.background = element_rect(fill = "white"),#
+			panel.margin = unit(2,"lines"),#
+			strip.text = element_text(size = 12, face="bold")) #
+#
+			plot_list<- p#
+			return(plot_list)#
+		}#
+	}#
+	if(cloudtype=="comparison") {#
+		comparison.cloud(corp_m, max.words=200,#
+		random.order=FALSE,colors=palette,#
+		title.size = .001,#
+		main="Differences Between Inferno, Purgatory and Paradise")#
+	}#
+	if(cloudtype=="commonality") {#
+		commonality.cloud(corp_m, max.words=200, #
+		random.order=FALSE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+	if(cloudtype=="inferno") {#
+		inferno_df <- corp_df[1]#
+		inferno_matrix <- as.matrix(inferno_df)#
+		commonality.cloud(inferno_matrix, max.words=100,#
+		random.order=FALSE,color=palette[1],main="Inferno")#
+	}#
+	if(cloudtype=="purgatory") {#
+		purgatory_df <- corp_df[2]#
+		purgatory_matrix <- as.matrix(purgatory_df)#
+		commonality.cloud(purgatory_matrix, max.words=100,#
+		random.order=FALSE,color=palette[2],main="Purgatory")#
+	}#
+	if(cloudtype=="paradise") {#
+		paradise_df <- corp_df[3]#
+		paradise_matrix <- as.matrix(paradise_df)#
+		commonality.cloud(paradise_matrix, max.words=100,#
+		random.order=FALSE,color=palette[3],main="Paradise")#
+	}#
+	if(plot_type=="manyeyes") {#
+		commonality.cloud(ibm_df, max.words=50, #
+		random.order=TRUE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+}#
+#
+###
+#
+shinyServer(function(input, output) {#
+	cat("Press \"ESC\" to exit...\n")#
+#
+	output$ui <- renderUI({#
+		if (is.null(input$input_type))#
+			return()#
+		switch(input$input_type,#
+			"Word Use" = fluidRow(#
+				column(6, h5("Books"),#
+					checkboxInput("Inferno", "Inferno",#
+									value = TRUE#
+					),#
+					checkboxInput("Purgatory", "Purgatory",#
+									value = TRUE#
+					),#
+					checkboxInput("Paradise", "Paradise",#
+									value = TRUE#
+					)#
+					),#
+				column(6,#
+					sliderInput(inputId = "wordcount", #
+						label = h5("Number of Words"), #
+						min = 1, max = 24, value = 12, step = 1#
+					)),#
+					br(),#
+					br(),#
+					includeHTML("aboutwordstems.html")#
+				),#
+			"Word Cloud" = fluidRow(#
+				column(12, "Please be patient.  Some plots load slowly.",#
+					br(),#
+					radioButtons("cloudtype", h5("Type of Cloud"),#
+						choices = c("Commonality Cloud" = "commonality",#
+									"Comparison Cloud" = "comparison",#
+									"Inferno Only" = "inferno",#
+									"Purgatory Only" = "purgatory",#
+									"Paradise Only" = "paradise"),#
+						selected = "commonality"#
+					),#
+					includeHTML("aboutclouds.html")#
+				)#
+			),#
+			"Many Eyes" = fluidRow(#
+				column(12,#
+					includeHTML("aboutmanyeyes.html"),#
+#
+					h5("Click below to go to Many Eyes:"),#
+					helpText( a("Word Tree of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-word-tree", target="_blank")),#
+					helpText( a("Phrase Net of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-phrase-ne", target="_blank"))#
+#
+				)#
+				)#
+		)#
+	})#
+	getdata <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return(common_corp_df)#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return(corp_df)#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return(corp_df)#
+		}#
+	})#
+	getplottype <- reactive({#
+		if(input$input_type=="Word Use") {#
+			return("bar")#
+		}#
+		if(input$input_type=="Word Cloud") {#
+			return("wordcloud")#
+		}#
+		if(input$input_type=="Many Eyes") {#
+			return("manyeyes")#
+		}#
+	})#
+	getbooks <- reactive ({#
+		results <- c(input$Inferno, input$Purgatory, input$Paradise)#
+		return(results)#
+	})#
+	getcolor <- reactive({#
+		return(input$colorScheme)#
+	})#
+	getcloudtype <- reactive({#
+		return(input$cloudtype)#
+	})#
+	getimagetype <- reactive({#
+		return(input$image)#
+	})#
+	output$plotResults <- renderPlot ({#
+		plotResults <- plot_function(getdata(), getplottype(), #
+		getcloudtype(), getbooks(), input$wordcount, getcolor(), "black")#
+		print(plotResults)#
+	}, width = 700, height = 600)#
+})
+runApp()
+library(wordcloud)#
+library(ggplot2)#
+library(reshape2)#
+library(grid)#
+library(shiny)#
+#
+setwd("/Users/jg/Documents/DataVis/msan622/homework4/")#
+#
+source("dante.r")#
+source("ibm.r")#
+#
+corp_df <- data.frame(#
+    Inferno = dante_matrix[, "danteinferno.txt"],#
+    Purgatory = dante_matrix[, "dantepurgatory.txt"],#
+    Paradise = dante_matrix[, "danteparadise.txt"],#
+    stringsAsFactors = FALSE)#
+#
+corp_matrix <- as.matrix(corp_df)#
+#
+ibm_df <- data.frame(#
+	ibm = ibm_matrix[, "ibmuse.txt"],#
+	stringAsFactors = FALSE)#
+ibm_matrix <- as.matrix(ibm_df)#
+#ibm_df$word <- rownames(ibm_df)#
+#
+common_corp_df <- corp_df#
+common_corp_df[corp_df==0] <- NA#
+common_corp_df <- common_corp_df[!is.na(common_corp_df[1]) & !is.na(common_corp_df[2]) & !is.na(common_corp_df[3]),]#
+#
+common_corp_df$wordsums <- rowSums(common_corp_df)#
+common_corp_df <- common_corp_df[with(common_corp_df, order(-wordsums)),]#
+#
+common_corp_df <- common_corp_df[1:3]#
+#
+plot_list <- list()#
+#
+plot_function <- function(data, plot_type, cloudtype, books, wordcount, colorScheme, bg) {#
+	palette <- rev(brewer.pal(3,colorScheme))#
+	corp_m <- as.matrix(data)#
+	par(mfrow=c(1,1), bg=bg)#
+	if(plot_type=="bar") {#
+		bar_df <- head(data[books], wordcount)#
+		bar_df$word <- rownames(bar_df)#
+		bar_df <- melt(bar_df, id.vars = "word")#
+		for(i in bar_df$word) {#
+			p <- ggplot(bar_df, aes("i", value)) +#
+			geom_bar(aes(fill=variable),#
+			position ="dodge",#
+			stat="identity",#
+			width=.25) +#
+			theme(panel.grid.major = element_blank(),#
+			panel.grid.minor = element_blank(),#
+			panel.background = element_rect(fill="white"),#
+			plot.background = element_blank(),#
+			axis.ticks = element_blank(),#
+			axis.text.x = element_blank(),#
+			axis.text.y = element_blank(),#
+			axis.title.x = element_blank(),#
+			axis.title.y = element_blank(),#
+			legend.title = element_blank(),#
+			legend.text = element_text(size=14, face="bold")) +#
+			ggtitle(expression(bold("Frequent Word Stems\n"))) +#
+			scale_fill_manual(values=palette[books]) + # or [1:3]#
+			facet_wrap( ~ word, ncol=3) +#
+			theme(strip.background = element_rect(fill = "white"),#
+			panel.margin = unit(2,"lines"),#
+			strip.text = element_text(size = 12, face="bold")) #
+#
+			plot_list<- p#
+			return(plot_list)#
+		}#
+	}#
+	if(cloudtype=="comparison") {#
+		comparison.cloud(corp_m, max.words=200,#
+		random.order=FALSE,colors=palette,#
+		title.size = .001,#
+		main="Differences Between Inferno, Purgatory and Paradise")#
+	}#
+	if(cloudtype=="commonality") {#
+		commonality.cloud(corp_m, max.words=200, #
+		random.order=FALSE, color=palette,#
+		main="Commonality Between Inferno, Purgatory, and Paradise")#
+	}#
+	if(cloudtype=="inferno") {#
+		inferno_df <- corp_df[1]#
+		inferno_matrix <- as.matrix(inferno_df)#
+		commonality.cloud(inferno_matrix, max.words=100,#
+		random.order=FALSE,color=palette[1],main="Inferno")#
+	}#
+	if(cloudtype=="purgatory") {#
+		purgatory_df <- corp_df[2]#
+		purgatory_matrix <- as.matrix(purgatory_df)#
+		commonality.cloud(purgatory_matrix, max.words=100,#
+		random.order=FALSE,color=palette[2],main="Purgatory")#
+	}#
+	if(cloudtype=="paradise") {#
+		paradise_df <- corp_df[3]#
+		paradise_matrix <- as.matrix(paradise_df)#
+		commonality.cloud(paradise_matrix, max.words=100,#
+		random.order=FALSE,color=palette[3],main="Paradise")#
+	}#
+	if(plot_type=="manyeyes") {#
+		commonality.cloud(corp_m, max.words=100, #
 		random.order=TRUE, color=palette,#
 		main="Commonality Between Inferno, Purgatory, and Paradise")#
 	}#
