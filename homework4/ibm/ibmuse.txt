@@ -1,0 +1,61 @@
+IBM Many Eyes Terms of Use Agreement (the “Agreement”)
+
+Please read this Agreement carefully. This is a binding Agreement between You and IBM. Print and retain a copy of all applicable terms for your records.
+
+“Content” means all data and information that are created, installed, uploaded, or transferred in connection with the Services by You.
+“IBM” means International Business Machines Corporation.
+“Services” is a web site that provides access to the Many Eyes project as an early-stage experimental technology in order to get early user feedback.
+“You” and “Your” include either an individual person or a single legal entity.
+Your use of the Services indicates that You accept the following terms and conditions. If You are accepting these terms on behalf of another person, company or other legal entity, You represent and warrant that You have full authority to bind that person, company or legal entity to these terms. If You do not agree to these terms and conditions, do not click the “accept” button or access the Services.
+
+In some instances, you may be required to register before being allowed to access the Services. You are responsible for protecting your account information and password and for controlling who may access Your account or use the Services on your behalf.
+
+1.USE OF SERVICES
+
+The Services provide You with a preview of the Many Eyes project, which has not been fully tested. IBM provides the Services at no charge.
+
+You may submit Content to the Services, which IBM will use to run a designated program, generate results, and provide the results to You, which may include software, over the World Wide Web. You agree not to imply that the results have any warranty or endorsement from IBM. Any Content that You submit to IBM and the results are considered non-confidential, and IBM will be free to disclose them for any purpose. IBM will not return to You the Content You submit. For quality control and other purposes, IBM may monitor your use of the Services and transmission of Content through the Services. You agree not to send automated queries of any sort to the Services. You also agree not to submit anyone else's copyrightable material to the Services unless You obtain written permission of the copyright holder to license the copyrightable material to IBM, consistent with the terms of this Agreement. You also agree not to submit any software to IBM through the Services. You are responsible for all Content, including selection, creation, design, usage, licensing, maintenance, testing, backup, and support. You will not provide any Content with personal information unless such information is anonymized. The laws of some jurisdictions may require the consent of individuals prior to including their personal information in the Content. You agree to comply with all applicable laws, to obtain all necessary consents, and make all necessary disclosures before including personal information in the Content.
+
+The implementation of IBM accessibility requirements to support users with disabilities is not complete in this experimental release.
+
+IBM or its suppliers retain all rights, title, and interest in the Services (including any applications or software provided as part of the Services). You may not 1) use, copy, modify, link to, or distribute any part of the Services, except as expressly provided in this Agreement; or 2) reverse assemble, reverse compile, or otherwise translate any part of the Services except as specifically permitted by law without the possibility of contractual waiver.
+
+2. TERM AND TERMINATION
+
+The term of this Agreement will begin when You first use the Services, and will end the earliest of when You stop using the Services, or when IBM withdraws or ends your access to the Services. IBM may terminate your use of the Services and remove any Content submitted by You from IBM’s website, at any time and for any reason.
+
+3. WARRANTY DISCLAIMER AND LIMITATION OF LIABILITY
+
+IBM GRANTS ACCESS TO THE SERVICES "AS IS", WITHOUT WARRANTY OF ANY KIND. IBM EXPRESSLY DISCLAIMS ALL WARRANTIES OR CONDITIONS, EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO THE IMPLIED WARRANTIES OR CONDITIONS OF TITLE, MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT AND FREEDOM FROM INTERFERENCE WITH YOUR ENJOYMENT. SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF IMPLIED WARRANTIES, SO THESE EXCLUSIONS AND LIMITATIONS MAY NOT APPLY TO YOU.
+
+You are solely responsible for determining the appropriateness of the Services for your purpose, and assume all risks associated with its use, including risks connected with your submission of Content. The risks You assume include, but are not limited to, the risks of program errors; damage to or loss of Content, programs or equipment; and unavailability or interruption of operations. Neither IBM nor its suppliers are responsible for the accuracy, completeness, timeliness, reliability, content or availability of the Services or results from it.
+
+IBM will not be liable for any: direct damages; special, incidental, or indirect damages; or economic consequential damages (including lost profits or savings), even if IBM has been advised of the possibility of such damages. IBM will not be liable for the loss of or damage to your Content or results, or any damages claimed by You based on a third party claim, including a licensor of Content You submit. Some jurisdictions do not allow for the exclusion or limitation of incidental or consequential damages, so these exclusions and limitations may not apply to You.
+
+The Content You provide may be posted on the Services website. Anyone who agrees to the terms of this Agreement can access and download such Content. Some applications included with the Services may provide You with access restrictions that You may implement in order to help protect your Content. You are responsible for any such implementation. IBM shall have no liability in the event such access restrictions are not sufficient to protect your Content. IBM is not responsible for any third party seeing or obtaining Content or results transmitted through the Services.
+
+You agree to indemnify and hold IBM harmless from all damages, liabilities, costs and expenses, including attorneys’ fees, incurred by IBM as a result of any claim, proceeding or judgment arising out of your use of the Services or the results, your submission of Content, or out of IBM's disclosure, copying, distribution, display, performance, or preparation of derivative works of the Content that You provide to IBM.
+
+4. FEEDBACK AND INPUT TO IBM
+
+By entering into this Agreement, You grant IBM a perpetual, worldwide and irrevocable license under all intellectual property rights (including copyright) to use, copy, distribute, sublicense, display, perform and prepare derivative works of any Content that You provide to IBM, including but not limited to arrangements, visualizations, and selections of Content, and feedback and suggestions You provide to IBM. For any Content You provide to IBM that originates from a third party, You represent that You are not aware of anyone who holds intellectual property or other rights, such as rights to privacy, that could prevent IBM from exercising the rights listed in this paragraph.
+
+5. GENERAL
+
+This Agreement is governed by the laws of the State of New York, without regard to its conflicts of laws provisions. IBM provides the Services to You in the United States. You agree to comply with all applicable United States laws, including those regarding the export of data, whether or not You use the Services in the United States. You are also responsible for complying with all other laws and regulations that apply to your use of the Services. You agree to only use the Services in a manner and with materials that such usage complies with the US embargo regulations of the US Treasury Department, the US Export Administration Regulations of the US Commerce Department and the International Traffic in Arms Regulations of the US State Department (collectively, "Applicable Export Control Laws"). You shall not use the Service to support any matters in connection with any military, defense or national police entities or certain prohibited end uses, including but not limited to nuclear, chemical or biological weapons or missiles. You acknowledge that IBM may use global resources and personnel located in various countries for the delivery of Services. You represent that no Content accessible to IBM for the Services will require an export license or is restricted from export to any IBM global resource or personnel under applicable export control laws.
+
+You represent that you are not subject, either directly or indirectly (by affiliation or any other connection with another party), to any order issued by any agency of the United States Government revoking or denying, in whole or in part, your United States export privileges. You agree to notify IBM immediately if you become subject to any such order.
+
+You may be provided with a separate license agreement if You are provided with software in using the Services (the “License Agreement”). In addition, some applications included with the Services may have additional terms and conditions (“Additional Terms and Conditions”). This Agreement, the General Terms of Use (at http://www.ibm.com/legal/us/en/) and any License Agreement or Additional Terms and Conditions you may receive are the only agreements regarding your use of the Services. They replace all other communications and agreements we may have had prior to this Agreement. IBM may modify this Agreement at any time by posting a new agreement with the Services. If You do not accept the modification, You must promptly stop using the Services. By continuing to use the Services, You accept the modification.
+
+If any part of this Agreement is held to be invalid or unenforceable, it will not affect the validity or enforceability of the rest of the Agreement. Without further action of the parties, that part will be reformed to the minimum extent necessary to make it valid and enforceable. Any terms of this Agreement that by their nature extend beyond the termination remain in effect until fulfilled, and apply to both parties’ respective successors and assignees.
+
+This Agreement does not create an agency, joint venture, or partnership between You and IBM.
+
+Each party grants only the licenses and rights specified in this Agreement and any applicable License Agreement and/or Additional Terms and Conditions. No other licenses or rights (including licenses or rights under patents) are granted by this Agreement and any applicable License Agreement and/or Additional Terms and Conditions either directly, by implication, or otherwise.
+
+Unless otherwise required by applicable law without the possibility of contractual waiver or limitation, i) neither party will bring a legal action, regardless of form, arising out of or related to this Agreement or the Services more than one year after the cause of action arose; and ii) after such time limit, any legal action arising out of this Agreement or the Services and all respective rights related to any such action lapse.
+
+Copyright and trademark information
+Patent information
+Digital Millenium Copyright Act Notices
