@@ -148,8 +148,8 @@ shinyServer(function(input, output) {
 					includeHTML("aboutmanyeyes.html"),
 
 					h5("Click below to go to Many Eyes:"),
-					helpText( a("Word Tree of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-word-tree", target="_blank")),
-					helpText( a("Phrase Net of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-phrase-ne", target="_blank"))
+					helpText( a("Phrase Net of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-phrase-ne", target="_blank")),
+					helpText( a("Word Tree of The Divine Comedy", href="http://www.manyeyes.com/software/analytics/manyeyes/visualizations/dantes-the-divine-comedy-word-tree", target="_blank"))
 
 				)
 				)
