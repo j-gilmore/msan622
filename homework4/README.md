@@ -30,14 +30,14 @@ This will start the `shiny` app. See below for details on how to interact with t
 
 This visualization is meant to be interactive.  Please adjust the settings to see how the information presented can be manipulated and personalized.  Due to the amount of data being rendered, some of the plots take a moment to load.
 
--**The Divine Comedy by Dante Alighieri** This work was chosen to show how a single author can vary their mood and theme.  Further, this has been emphasized within a single masterpiece of classic literature.  The corpus is from a single translation provided by the Gutenberg Project.  Each book was then extracted as a subset.  The goal was the ability to compare and contrast within a single context.
+-**The Divine Comedy by Dante Alighieri** This work was chosen to show how a single author can vary their mood and theme.  This has been emphasized within a single masterpiece of classic literature.  The corpus is from the same translation provided by the Gutenberg Project.  Each book was then extracted as a subset.  The goal was motivated by the ability to compare and contrast within a single context.
 
 
 ![IMAGE](dante-freq-stems.png)
 
--**Small Multiples**  This plot uses a few some very simple techniques to exhibit frequent word stems common to all three books.  The color scheme was selected to further the concept of hell, purgatory, and the afterlife.  The plot may appear simple, however it is very complex and was somewhat difficult to implement as envisioned.  
+-**Small Multiples**  This plot uses a few very simple techniques to exhibit frequent word stems common to all three books.  The color scheme was selected to further the concept of hell, purgatory, and the afterlife.  The plot may appear simple, however it is fairly complex and was somewhat difficult to implement as designed.
 
-The grouped bar chart is faceted, but centered instead of in its natural position of the facet.  The user can select individual books or pairs and the colors represented by the color scheme remain constant.  Also present is the ability to show how many words are represented.  Theoretically all could be shown, but the visual appeal decreases as more word stems are added.  The small multiples allows the user to see similarities as well as differences among various subgroups.  Due to the quantity of data, this plot may take a little while to load.
+The grouped bar chart is faceted, but centered instead of in its natural position of the facet.  The user can select individual books or pairs and the colors represented by the color scheme remain constant.  Also present is the ability to show how many words are represented.  Theoretically all common stems could be shown, but the visual appeal decreases as more word stems are added.  The small multiples allows the user to see similarities as well as differences among various subgroups.  Due to the quantity of data, this plot may take a little while to load.
 
 
 ![IMAGE](dante-word-cloud.png)
