@@ -143,7 +143,7 @@ shinyServer(function(input, output) {
 					includeHTML("aboutheatmaps.html")
 				)),
 			"Area Chart" = fluidRow(
-				column(12, "Please be patient.  Some plots load slowly.",
+				column(12,
 					br(),
 					radioButtons("areatype", h5("Type of Area Chart"),
 						choices = c("Fixed Coordinates" = "areafixed",
