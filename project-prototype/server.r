@@ -4,11 +4,13 @@ library(ggmap)
 library(shiny)
 library(stringr)
 
-oohoesnat <- read.csv("~/oohoesnat.csv", stringsAsFactors=FALSE)
-oohoesstate <- read.csv("~/oohoesstate.csv", stringsAsFactors=FALSE)
-oohoesmetrogeo <- read.csv("~/oohoesmetrogeo.csv", stringsAsFactors=FALSE)
-stateneighbors <- read.csv("~/neighbors.csv")
-statelatloncenter <- read.csv("~/state_latlon.csv")
+source(DirSource(directory=file.path("data")))
+
+oohoesnat <- read.csv("/Data/oohoesnat.csv", stringsAsFactors=FALSE)
+oohoesstate <- read.csv("/Data/oohoesstate.csv", stringsAsFactors=FALSE)
+oohoesmetrogeo <- read.csv("/Data/oohoesmetrogeo.csv", stringsAsFactors=FALSE)
+stateneighbors <- read.csv("/Data/neighbors.csv")
+statelatloncenter <- read.csv("/Data/state_latlon.csv")
 
 text_function <- function(df, occ) {
 	subset <- df[which(df$OCC_CODE==occ),]
