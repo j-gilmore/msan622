@@ -105,7 +105,7 @@ A simple navbar was used that had a hierarchy built in to show the data as a who
 
 On each page, effort was made to be descriptive in the titles for the functions and applied filters.  When appropriate, supplemental information provided in terms of a static description (The Data) or dynamic descriptions (Local Stats).
 
-The titles of most plots are also dynamic to further indicate the selections made by the user.  In this way, the ability to get lot within the data is mitigated.
+The titles of most plots are also dynamic to further indicate the selections made by the user.  In this way, the ability to get lost within the data is mitigated.
 
 -**Prototype Feedback**  The prototype demonstrated had limited functionality of the project.  The app had an interface similar to the final project, but only the local stats section was enabled.  The user could access any of the professions within the Management industry along with any state.  The resulting output would show a description of the profession from the Occupational Outlook Handbook, a table with relevant stats of the profession including total employed, employed per 1000, and wage data specific to cities within the state selected.  
 
@@ -115,7 +115,7 @@ Some questions were raised about the choice of map by google.  It was recommende
 
 -**Challenges**  The most difficult aspect of this project was the data itself.  There was a lot of effort put into organizing the data that when even from the same source had differences which had to be standardized and controlled for.  The organizational structure of the data presented some limitations that were mentioned above, but at the same time made the visualizations elegant when able to view from a far.
 
-All of the subsequent decisions related to the maps selected was made after the prototype exercise.  The input was valuable, but had to consider what was available at the time given the deadline at hand. 
+All of the subsequent decisions related to the maps selected was made after the prototype exercise.  The input was valuable, but had to consider what was available at the time, given the deadline at hand. 
 
 Time is always a challenge.  To create a plot well can result in a great deal of time spent making modifications, then more modifications.  There are so many additional features and additional plots that could be created given the size and complexity of the dataset.  Industry level, even professional level analysis could be done by state, or even metro area.  It would be fun to provide even more analysis.  For this app however, the plots provided were appropriate given the over-arching goals to provide context of industries and professions both geographically and in terms of wages earned.  Given alternate goals, a whole slew of new plots could be designed.
 
